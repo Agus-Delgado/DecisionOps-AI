@@ -1,6 +1,6 @@
 ﻿# DecisionOps AI Toolkit
 
-[![CI Status](https://github.com/augusllc/decisionops-ai-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/augusllc/decisionops-ai-toolkit/actions/workflows/ci.yml)
+![CI](https://github.com/https://github.com/Agus-Delgado/DecisionOps-AI.git/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/Version-v0.1.0-blue.svg)](https://github.com/augusllc/decisionops-ai-toolkit/releases/tag/v0.1.0)
 [![Stack](https://img.shields.io/badge/Stack-FastAPI%20%7C%20Vite%20%7C%20React-blueviolet)](https://github.com/augusllc/decisionops-ai-toolkit)
