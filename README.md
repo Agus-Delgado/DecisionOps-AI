@@ -125,11 +125,11 @@ Identifica clientes con riesgo de irse (**churn prediction**) y **entiende por q
 - Top 8 features más importantes
 - Entendé qué influye más en el riesgo
 
-> **Placeholder: Screenshot 1** - Interfaz principal con 3 pasos y selector de ejemplos
-> ![Pantalla principal - Entrenar, Predecir, Explicar](docs/screenshots/demo-main.png)
+### Screenshot (1)
 
-> **Placeholder: Screenshot 2** - Predicción + tabla de explicación
-> ![Resultado: Predicción + Feature Importance](docs/screenshots/demo-result.png)
+Guardá la imagen en la ruta: docs/screenshots/demo-main.png
+
+![Pantalla principal - Entrenar, Predecir, Explicar](docs/screenshots/demo-main.png)
 
 ---
 

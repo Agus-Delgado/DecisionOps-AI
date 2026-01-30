@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getHealth, trainModel, predict, explain } from './api'
 import { mockTrainMetrics, mockPredict, mockExplainData, checkApiAvailable } from './demo'
+import { theme } from './theme'
+import { Card, CardHeader, CardBody, Button, Badge, Field, Input, Select, Callout, Table, TableHeader, TableBody, TableRow, TableHeadCell, TableCell } from './components/ui'
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error'
 
@@ -195,18 +197,35 @@ export default function App() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui', padding: 24, maxWidth: 1200, margin: '0 auto' }}>
-      {/* Hero section */}
-      <div style={heroStyle}>
-        <h1 style={{ borderBottom: '2px solid #333', paddingBottom: 12, marginBottom: 16 }}>
-          DecisionOps AI Toolkit - Demo
-        </h1>
-        <p style={{ fontSize: 16, color: '#555', margin: '0 0 16px 0' }}>
-          Entrená un modelo ML, hacé predicciones y explicá decisiones. Todo en local, costo cero.
-        </p>
-      </div>
+    <div style={containerStyle}>
+      {/* Header */}
+      <header style={headerStyle}>
+        <div style={headerContentStyle}>
+          <h1 style={titleStyle}>
+            DecisionOps AI Toolkit
+          </h1>
+          <p style={subtitleStyle}>
+            Entrená un modelo ML, hacé predicciones y explicá decisiones. Todo en local, costo cero.
+          </p>
+        </div>
+        
+        {/* Status Badge */}
+        {checkingApi ? (
+          <Badge variant="warning" dot>
+            Verificando API...
+          </Badge>
+        ) : demoMode ? (
+          <Badge variant="warning" dot>
+            Modo Demo
+          </Badge>
+        ) : (
+          <Badge variant="success" dot>
+            API Conectada
+          </Badge>
+        )}
+      </header>
 
-      {/* Demo Mode Badge */}
+      {/* Demo Mode Banner */}
       {(demoMode || checkingApi) && (
         <div style={demoModeBannerStyle}>
           {checkingApi ? (
@@ -214,441 +233,485 @@ export default function App() {
           ) : (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <span style={demoBadgeStyle}>🎭 Modo Demo (sin API)</span>
                 <span style={{ fontSize: 14, color: '#666' }}>
-                  La demo funciona sin backend usando predicciones simuladas.{' '}
+                  🎭 La demo funciona sin backend usando predicciones simuladas.{' '}
                   <a 
                     href="#diagnostics" 
-                    style={{ color: '#0070f3', textDecoration: 'underline' }}
+                    style={{ color: '#0070f3', textDecoration: 'none', fontWeight: 600 }}
                     title="Ver instrucciones para conectar API real"
                   >
                     ¿Cómo conectar una API real?
                   </a>
                 </span>
               </div>
-              <button 
+              <Button 
                 onClick={handleToggleDemoMode}
-                style={toggleButtonStyle}
-                title="Intentar reconectar con API"
+                variant="primary"
               >
                 🔄 Reconectar API
-              </button>
+              </Button>
             </>
           )}
         </div>
       )}
 
-      {/* What you're seeing section */}
-      <section style={infoBoxStyle}>
-        <h2 style={{ marginTop: 0 }}>💡 Qué estás viendo</h2>
-        <ul style={{ lineHeight: 1.8, color: '#333' }}>
+      {/* Info Section */}
+      <section style={infoCardStyle}>
+        <h2 style={cardTitleStyle}>💡 Qué estás viendo</h2>
+        <ul style={infoListStyle}>
           <li><strong>Predicción de churn</strong>: Identifica clientes con riesgo de irse (clasificación binaria)</li>
           <li><strong>Explicabilidad</strong>: Entiende qué features influyen más (sin caja negra)</li>
           <li><strong>Cero dependencias externas</strong>: Corre en tu máquina, sin APIs pagadas, sin data lake</li>
         </ul>
       </section>
 
-      {/* Step-by-step flow */}
-      <div style={stepsContainerStyle}>
+      {/* Main Grid */}
+      <div style={mainGridStyle}>
         {/* Step 1: Train */}
-        <section style={sectionStyle}>
-          <div style={stepHeaderStyle}>
-            <span style={stepBadgeStyle}>Paso 1</span>
-            <h2 style={{ margin: 0 }}>Entrená el Modelo</h2>
-          </div>
-          <p style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
-            Entrena un modelo de clasificación con nuestro dataset demo (1000 registros de clientes)
-          </p>
-          <button onClick={handleTrain} disabled={trainStatus === 'loading'} style={buttonStyle}>
-            {trainStatus === 'loading' ? '⏳ Entrenando...' : '🚀 Entrenar Modelo'}
-          </button>
+        <Card>
+          <CardHeader stepNumber={1}>
+            Entrenar Modelo
+          </CardHeader>
+          <CardBody description="Entrena un modelo de clasificación con nuestro dataset demo (1000 registros de clientes)">
+            <Button 
+              onClick={handleTrain} 
+              loading={trainStatus === 'loading'}
+              fullWidth
+            >
+              Entrenar Modelo
+            </Button>
           {trainStatus === 'error' && (
-            <div style={resultBoxStyle('error')}>
-              <strong>❌ Error:</strong> {trainError}
-            </div>
+            <Callout variant="error" title="Error">
+              {trainError}
+            </Callout>
           )}
           {trainStatus === 'success' && trainMetrics && (
-            <div style={resultBoxStyle('success')}>
-              <strong>✅ Modelo entrenado exitosamente</strong>
-              <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Métrica</th>
-                    <th style={thStyle}>Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <Callout variant="success" title="Modelo entrenado exitosamente">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHeadCell>Métrica</TableHeadCell>
+                    <TableHeadCell align="right">Valor</TableHeadCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody zebra>
                   {Object.entries(trainMetrics).map(([key, value]) => (
-                    <tr key={key}>
-                      <td style={tdStyle}>{key}</td>
-                      <td style={tdStyle}>{typeof value === 'number' ? value.toFixed(4) : String(value)}</td>
-                    </tr>
+                    <TableRow key={key}>
+                      <TableCell>{key}</TableCell>
+                      <TableCell align="right">
+                        {typeof value === 'number' ? value.toFixed(4) : String(value)}
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </Callout>
           )}
-        </section>
+          </CardBody>
+        </Card>
 
         {/* Step 2: Predict */}
-        <section style={sectionStyle}>
-          <div style={stepHeaderStyle}>
-            <span style={stepBadgeStyle}>Paso 2</span>
-            <h2 style={{ margin: 0 }}>Hacé una Predicción</h2>
-          </div>
-          <p style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
-            Ingresá datos de un cliente para predecir si va a irse (churn)
-          </p>
+        <Card>
+          <CardHeader stepNumber={2}>
+            Hacer Predicción
+          </CardHeader>
+          <CardBody description="Ingresá datos de un cliente para predecir si va a irse (churn)">
 
           {/* Quick load examples */}
-          <div style={examplesStyle}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#666', marginRight: 12 }}>Cargar ejemplo:</span>
-            {Object.entries(EXAMPLE_PROFILES).map(([key, profile]) => (
-              <button
-                key={key}
-                onClick={() => loadExample(key as keyof typeof EXAMPLE_PROFILES)}
-                style={exampleButtonStyle}
-                title={profile.label}
-              >
-                {profile.label}
-              </button>
-            ))}
+          <div style={examplesContainerStyle}>
+            <span style={examplesLabelStyle}>Cargar ejemplo:</span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {Object.entries(EXAMPLE_PROFILES).map(([key, profile]) => (
+                <Button
+                  key={key}
+                  onClick={() => loadExample(key as keyof typeof EXAMPLE_PROFILES)}
+                  variant="secondary"
+                  style={{ padding: `${theme.spacing.sm} ${theme.spacing.lg}`, fontSize: theme.fontSizes.sm }}
+                >
+                  {profile.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginTop: 16 }}>
-            <div>
-              <label style={labelStyle}>Age:</label>
-              <input
+          <div style={formGridStyle}>
+            <Field label="Edad">
+              <Input
                 type="number"
                 value={formData.age}
                 onChange={(e) => updateFormField('age', parseInt(e.target.value))}
-                style={inputStyle}
               />
-            </div>
-            <div>
-              <label style={labelStyle}>Tenure (months):</label>
-              <input
+            </Field>
+            <Field label="Antigüedad (meses)">
+              <Input
                 type="number"
                 value={formData.tenure_months}
                 onChange={(e) => updateFormField('tenure_months', parseInt(e.target.value))}
-                style={inputStyle}
               />
-            </div>
-            <div>
-              <label style={labelStyle}>Monthly Spend ($):</label>
-              <input
+            </Field>
+            <Field label="Gasto mensual ($)">
+              <Input
                 type="number"
                 value={formData.monthly_spend}
                 onChange={(e) => updateFormField('monthly_spend', parseFloat(e.target.value))}
-                style={inputStyle}
               />
-            </div>
-            <div>
-              <label style={labelStyle}>Tickets:</label>
-              <input
+            </Field>
+            <Field label="Tickets de soporte">
+              <Input
                 type="number"
                 value={formData.tickets}
                 onChange={(e) => updateFormField('tickets', parseInt(e.target.value))}
-                style={inputStyle}
               />
-            </div>
-            <div>
-              <label style={labelStyle}>Plan:</label>
-              <select
+            </Field>
+            <Field label="Plan">
+              <Select
                 value={formData.plan}
                 onChange={(e) => updateFormField('plan', e.target.value)}
-                style={inputStyle}
               >
                 <option value="basic">Basic</option>
                 <option value="pro">Pro</option>
                 <option value="enterprise">Enterprise</option>
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Region:</label>
-              <select
+              </Select>
+            </Field>
+            <Field label="Región">
+              <Select
                 value={formData.region}
                 onChange={(e) => updateFormField('region', e.target.value)}
-                style={inputStyle}
               >
                 <option value="latam">LATAM</option>
                 <option value="na">NA</option>
                 <option value="eu">EU</option>
-              </select>
-            </div>
+              </Select>
+            </Field>
           </div>
-          <button
+          <Button
             onClick={handlePredict}
-            disabled={predictStatus === 'loading'}
-            style={{ ...buttonStyle, marginTop: 16 }}
+            loading={predictStatus === 'loading'}
+            fullWidth
+            style={{ marginTop: theme.spacing.lg }}
           >
-            {predictStatus === 'loading' ? '⏳ Prediciendo...' : '🎯 Predecir'}
-          </button>
+            🎯 Predecir
+          </Button>
           {predictStatus === 'error' && (
-            <div style={resultBoxStyle('error')}>
-              <strong>❌ Error:</strong> {predictError}
-            </div>
+            <Callout variant="error" title="Error">
+              {predictError}
+            </Callout>
           )}
           {predictStatus === 'success' && predictResult && (
-            <div style={resultBoxStyle('success')}>
-              <strong>✅ Predicción:</strong>
-              <div style={{ marginTop: 12, fontSize: 18 }}>
-                <p style={{ margin: '4px 0' }}>
-                  <strong>Resultado:</strong> {predictResult.label === 1 ? '🔴 Churn - Cliente en riesgo' : '🟢 Retención - Cliente leal'}
-                </p>
-                <p style={{ margin: '4px 0' }}>
-                  <strong>Confianza:</strong> {(predictResult.probability * 100).toFixed(1)}%
-                </p>
+            <Callout 
+              variant={predictResult.label === 1 ? 'error' : 'success'} 
+              title={predictResult.label === 1 ? 'Churn - Cliente en riesgo 🔴' : 'Retención - Cliente leal 🟢'}
+            >
+              <div style={{ fontSize: theme.fontSizes.xl, marginTop: theme.spacing.sm }}>
+                <strong>Confianza:</strong> {(predictResult.probability * 100).toFixed(1)}%
               </div>
-            </div>
+            </Callout>
           )}
-        </section>
+          </CardBody>
+        </Card>
 
         {/* Step 3: Explain */}
-        <section style={sectionStyle}>
-          <div style={stepHeaderStyle}>
-            <span style={stepBadgeStyle}>Paso 3</span>
-            <h2 style={{ margin: 0 }}>Explicá la Decisión</h2>
-          </div>
-          <p style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
-            Entiende qué factores más influyeron en la predicción
-          </p>
-          <button onClick={handleExplain} disabled={explainStatus === 'loading'} style={buttonStyle}>
-            {explainStatus === 'loading' ? '⏳ Cargando...' : '🔍 Obtener Explicación'}
-          </button>
+        <Card>
+          <CardHeader stepNumber={3}>
+            Explicar Decisión
+          </CardHeader>
+          <CardBody description="Entiende qué factores más influyeron en la predicción">
+            <Button 
+              onClick={handleExplain} 
+              loading={explainStatus === 'loading'}
+              fullWidth
+            >
+              🔍 Obtener Explicación
+            </Button>
           {explainStatus === 'error' && (
-            <div style={resultBoxStyle('error')}>
-              <strong>❌ Error:</strong> {explainError}
-            </div>
+            <Callout variant="error" title="Error">
+              {explainError}
+            </Callout>
           )}
           {explainStatus === 'success' && explainData && (
-            <div style={resultBoxStyle('success')}>
-              <strong>✅ Top features (método: {explainData.method})</strong>
-              <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                Rojo = aumenta churn, Verde = disminuye churn
+            <Callout variant="success" title={`Top features (método: ${explainData.method})`}>
+              <p style={{ fontSize: theme.fontSizes.sm, color: theme.colors.textMuted, margin: `${theme.spacing.sm} 0` }}>
+                ↑ Rojo = aumenta churn • ↓ Verde = disminuye churn
               </p>
-              <table style={{ ...tableStyle, marginTop: 12 }}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Feature</th>
-                    <th style={thStyle}>Importancia</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHeadCell>Feature</TableHeadCell>
+                    <TableHeadCell align="right">Importancia</TableHeadCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody zebra>
                   {explainData.top_features.slice(0, 8).map((feature: any, idx: number) => (
-                    <tr key={idx}>
-                      <td style={tdStyle}>{feature.feature}</td>
-                      <td style={tdStyle}>
-                        <span style={{ color: feature.weight > 0 ? '#c00' : '#080', fontWeight: 600 }}>
-                          {feature.weight > 0 ? '↑' : '↓'} {Math.abs(feature.weight).toFixed(4)}
+                    <TableRow key={idx}>
+                      <TableCell>{feature.feature}</TableCell>
+                      <TableCell align="right">
+                        <span style={{ 
+                          color: feature.weight > 0 ? theme.colors.error : '#059669', 
+                          fontWeight: theme.fontWeights.semibold,
+                          fontFamily: theme.fonts.mono
+                        }}>
+                          {feature.weight > 0 ? '↑' : '↓'} {Math.abs(feature.weight).toFixed(3)}
                         </span>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </Callout>
           )}
-        </section>
+          </CardBody>
+        </Card>
       </div>
 
-      {/* Health check section (hidden by default, for diagnostics) */}
-      <details id="diagnostics" style={{ marginTop: 32, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#666' }}>
-          🔧 Diagnósticos (Check API)
-        </summary>
-        <div style={{ marginTop: 12 }}>
-          {demoMode && (
-            <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#e3f2fd', borderLeft: '4px solid #2196f3', fontSize: 14 }}>
-              <strong>ℹ️ Cómo conectar la API real:</strong>
-              <ol style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
-                <li>Abrí una terminal en la raíz del proyecto</li>
-                <li>Ejecutá: <code style={{ backgroundColor: '#fff', padding: '2px 6px', borderRadius: 3 }}>npm run dev:api</code></li>
-                <li>Verificá que <a href="http://127.0.0.1:8000/health" target="_blank" rel="noopener noreferrer" style={{ color: '#0070f3' }}>http://127.0.0.1:8000/health</a> responda OK</li>
-                <li>Hacé click en el botón "🔄 Reconectar API" arriba</li>
-              </ol>
-            </div>
-          )}
-          <button onClick={handleCheckAPI} disabled={healthStatus === 'loading'} style={buttonStyle}>
-            {healthStatus === 'loading' ? 'Checking...' : 'Check API'}
-          </button>
-          {healthStatus !== 'idle' && (
-            <div style={resultBoxStyle(healthStatus)}>
-              <strong>Estado: </strong>
-              {healthStatus === 'success' && '✅ OK'}
-              {healthStatus === 'error' && '❌ Error'}
-              {healthStatus === 'loading' && '⏳ Loading...'}
-              <pre style={{ marginTop: 8, fontSize: 12, overflow: 'auto' }}>{healthDetail}</pre>
-            </div>
-          )}
-        </div>
-      </details>
+      {/* Diagnostics Section */}
+      <section style={diagnosticsCardStyle}>
+        <details id="diagnostics">
+          <summary style={diagnosticsSummaryStyle}>
+            🔧 Diagnósticos (Check API)
+          </summary>
+          <div style={{ marginTop: 16 }}>
+            {demoMode && (
+              <div style={diagnosticsInfoStyle}>
+                <strong>ℹ️ Cómo conectar la API real:</strong>
+                <ol style={{ marginTop: 12, marginBottom: 0, paddingLeft: 24, lineHeight: 1.8 }}>
+                  <li>Abrí una terminal en la raíz del proyecto</li>
+                  <li>Ejecutá: <code style={codeStyle}>npm run dev:api</code></li>
+                  <li>Verificá que <a href="http://127.0.0.1:8000/health" target="_blank" rel="noopener noreferrer" style={linkStyle}>http://127.0.0.1:8000/health</a> responda OK</li>
+                  <li>Hacé click en el botón "🔄 Reconectar API" arriba</li>
+                </ol>
+              </div>
+            )}
+            <Button 
+              onClick={handleCheckAPI} 
+              loading={healthStatus === 'loading'}
+              fullWidth
+            >
+              ✓ Check API
+            </Button>
+            {healthStatus === 'success' && (
+              <Callout variant="success" title="API disponible">
+                <pre style={preStyle}>{healthDetail}</pre>
+              </Callout>
+            )}
+            {healthStatus === 'error' && (
+              <Callout variant="error" title="Error de conexión">
+                <pre style={preStyle}>{healthDetail}</pre>
+              </Callout>
+            )}
+          </div>
+        </details>
+      </section>
 
-      <footer style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid #ddd', fontSize: 12, color: '#999', textAlign: 'center' }}>
+      <footer style={footerStyle}>
         <p>🚀 DecisionOps AI Toolkit • Costo cero • Sin DB • BYOK opcional • Open Source</p>
       </footer>
     </div>
   )
 }
 
-// Styles
-const heroStyle: React.CSSProperties = {
-  marginBottom: 24,
-  paddingBottom: 16,
-  borderBottom: '2px solid #0070f3'
+// ==================== STYLES ====================
+
+const containerStyle: React.CSSProperties = {
+  fontFamily: theme.fonts.system,
+  minHeight: '100vh',
+  backgroundColor: theme.colors.bgSecondary,
+  padding: theme.spacing.xl,
+  boxSizing: 'border-box'
 }
 
-const infoBoxStyle: React.CSSProperties = {
-  marginBottom: 32,
-  padding: 20,
-  borderRadius: 8,
-  backgroundColor: '#f0f7ff',
-  borderLeft: '4px solid #0070f3'
-}
-
-const stepsContainerStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-  gap: 24,
-  marginBottom: 32
-}
-
-const sectionStyle: React.CSSProperties = {
-  padding: 20,
-  border: '1px solid #ddd',
-  borderRadius: 8,
-  backgroundColor: '#fff'
-}
-
-const stepHeaderStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  marginBottom: 8
-}
-
-const stepBadgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 32,
-  height: 32,
-  borderRadius: '50%',
-  backgroundColor: '#0070f3',
-  color: 'white',
-  fontWeight: 700,
-  fontSize: 14
-}
-
-const buttonStyle: React.CSSProperties = {
-  padding: '10px 16px',
-  fontSize: 14,
-  fontWeight: 600,
-  backgroundColor: '#0070f3',
-  color: 'white',
-  border: 'none',
-  borderRadius: 6,
-  cursor: 'pointer',
-  transition: 'background 0.2s'
-}
-
-const examplesStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  flexWrap: 'wrap',
-  padding: 12,
-  backgroundColor: '#f9f9f9',
-  borderRadius: 6,
-  marginTop: 12
-}
-
-const exampleButtonStyle: React.CSSProperties = {
-  padding: '6px 12px',
-  fontSize: 12,
-  fontWeight: 500,
-  backgroundColor: '#e0e7ff',
-  color: '#0070f3',
-  border: '1px solid #0070f3',
-  borderRadius: 4,
-  cursor: 'pointer',
-  transition: 'all 0.2s'
-}
-
-const demoModeBannerStyle: React.CSSProperties = {
+const headerStyle: React.CSSProperties = {
+  maxWidth: '1200px',
+  margin: `0 auto ${theme.spacing['2xl']}`,
+  padding: theme.spacing['2xl'],
+  backgroundColor: theme.colors.bgPrimary,
+  borderRadius: theme.radius.xl,
+  boxShadow: theme.shadows.md,
+  border: `1px solid ${theme.colors.border}`,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: 16,
-  marginBottom: 24,
-  backgroundColor: '#fff4e6',
-  border: '2px solid #ff9800',
-  borderRadius: 8,
   flexWrap: 'wrap',
-  gap: 12
+  gap: theme.spacing.xl
 }
 
-const demoBadgeStyle: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '6px 12px',
-  backgroundColor: '#ff9800',
-  color: 'white',
-  fontWeight: 600,
-  fontSize: 14,
-  borderRadius: 4,
-  marginRight: 12
+const headerContentStyle: React.CSSProperties = {
+  flex: '1 1 auto'
 }
 
-const toggleButtonStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  fontSize: 14,
-  fontWeight: 600,
-  backgroundColor: '#0070f3',
-  color: 'white',
-  border: 'none',
-  borderRadius: 6,
+const titleStyle: React.CSSProperties = {
+  margin: `0 0 ${theme.spacing.sm} 0`,
+  fontSize: theme.fontSizes['4xl'],
+  fontWeight: theme.fontWeights.bold,
+  color: theme.colors.textPrimary,
+  letterSpacing: '-0.5px'
+}
+
+const subtitleStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: theme.fontSizes.lg,
+  color: theme.colors.textTertiary,
+  lineHeight: theme.lineHeights.relaxed
+}
+
+const demoModeBannerStyle: React.CSSProperties = {
+  maxWidth: '1200px',
+  margin: `0 auto ${theme.spacing.xl}`,
+  padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
+  backgroundColor: theme.colors.warningLight,
+  border: `2px solid ${theme.colors.warningBorder}`,
+  borderRadius: theme.radius.xl,
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: theme.spacing.lg
+}
+
+const infoCardStyle: React.CSSProperties = {
+  maxWidth: '1200px',
+  margin: `0 auto ${theme.spacing['2xl']}`,
+  padding: theme.spacing.xl,
+  backgroundColor: theme.colors.infoLight,
+  border: `2px solid ${theme.colors.infoBorder}`,
+  borderRadius: theme.radius.xl
+}
+
+const cardTitleStyle: React.CSSProperties = {
+  margin: '0',
+  fontSize: theme.fontSizes['2xl'],
+  fontWeight: theme.fontWeights.semibold,
+  color: theme.colors.textPrimary
+}
+
+const infoListStyle: React.CSSProperties = {
+  margin: `${theme.spacing.lg} 0 0 0`,
+  padding: `0 0 0 ${theme.spacing.xl}`,
+  lineHeight: theme.lineHeights.loose,
+  color: theme.colors.textSecondary
+}
+
+const mainGridStyle: React.CSSProperties = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+  gap: theme.spacing.xl,
+  marginBottom: theme.spacing['2xl']
+}
+
+const examplesContainerStyle: React.CSSProperties = {
+  padding: theme.spacing.lg,
+  backgroundColor: theme.colors.bgSecondary,
+  borderRadius: theme.radius.lg,
+  marginBottom: theme.spacing.lg
+}
+
+const examplesLabelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: theme.fontSizes.sm,
+  fontWeight: theme.fontWeights.semibold,
+  color: theme.colors.textTertiary,
+  marginBottom: theme.spacing.md
+}
+
+const formGridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+  gap: theme.spacing.lg,
+  marginBottom: theme.spacing.sm
+}
+
+const diagnosticsCardStyle: React.CSSProperties = {
+  maxWidth: '1200px',
+  margin: `0 auto ${theme.spacing['2xl']}`,
+  padding: theme.spacing.xl,
+  backgroundColor: theme.colors.bgPrimary,
+  borderRadius: theme.radius.xl,
+  boxShadow: theme.shadows.md,
+  border: `1px solid ${theme.colors.border}`,
+}
+
+const diagnosticsSummaryStyle: React.CSSProperties = {
   cursor: 'pointer',
-  transition: 'background 0.2s'
+  fontWeight: theme.fontWeights.semibold,
+  fontSize: theme.fontSizes.lg,
+  color: theme.colors.textSecondary,
+  padding: `${theme.spacing.xs} 0`,
+  userSelect: 'none'
+}
+
+const diagnosticsInfoStyle: React.CSSProperties = {
+  marginBottom: theme.spacing.lg,
+  padding: theme.spacing.lg,
+  backgroundColor: theme.colors.infoLight,
+  borderLeft: `4px solid ${theme.colors.info}`,
+  borderRadius: theme.radius.md,
+  fontSize: theme.fontSizes.base,
+  color: theme.colors.textSecondary
+}
+
+const codeStyle: React.CSSProperties = {
+  backgroundColor: theme.colors.gray800,
+  color: theme.colors.gray200,
+  padding: `2px ${theme.spacing.sm}`,
+  borderRadius: theme.radius.sm,
+  fontSize: theme.fontSizes.sm,
+  fontFamily: theme.fonts.mono
+}
+
+const linkStyle: React.CSSProperties = {
+  color: theme.colors.primary,
+  textDecoration: 'none',
+  fontWeight: theme.fontWeights.semibold
+}
+
+const preStyle: React.CSSProperties = {
+  marginTop: theme.spacing.md,
+  fontSize: theme.fontSizes.xs,
+  overflow: 'auto',
+  backgroundColor: theme.colors.gray800,
+  color: theme.colors.gray200,
+  padding: theme.spacing.md,
+  borderRadius: theme.radius.md,
+  fontFamily: theme.fonts.mono
+}
+
+const footerStyle: React.CSSProperties = {
+  maxWidth: '1200px',
+  margin: `${theme.spacing['3xl']} auto 0`,
+  paddingTop: theme.spacing.xl,
+  borderTop: `1px solid ${theme.colors.border}`,
+  fontSize: theme.fontSizes.sm,
+  color: theme.colors.textMuted,
+  textAlign: 'center'
 }
 
 const resultBoxStyle = (status: LoadingState): React.CSSProperties => ({
-  marginTop: 12,
-  padding: 12,
-  borderRadius: 6,
-  backgroundColor: status === 'error' ? '#fee' : status === 'success' ? '#efe' : '#ffa',
-  border: `1px solid ${status === 'error' ? '#c00' : status === 'success' ? '#0a0' : '#aa0'}`
+  marginTop: theme.spacing.lg,
+  padding: theme.spacing.lg,
+  borderRadius: theme.radius.lg,
+  backgroundColor: status === 'error' ? theme.colors.errorLight : status === 'success' ? theme.colors.successLight : '#fefce8',
+  border: `2px solid ${status === 'error' ? theme.colors.error : status === 'success' ? theme.colors.success : theme.colors.warning}`
 })
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 13,
-  fontWeight: 600,
-  marginBottom: 4
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 8,
-  fontSize: 14,
-  border: '1px solid #ccc',
-  borderRadius: 4,
-  boxSizing: 'border-box'
-}
 
 const tableStyle: React.CSSProperties = {
   width: '100%',
   borderCollapse: 'collapse',
-  marginTop: 12
+  marginTop: theme.spacing.md
 }
 
 const thStyle: React.CSSProperties = {
   textAlign: 'left',
-  padding: 8,
-  borderBottom: '2px solid #333',
-  fontWeight: 600
+  padding: theme.spacing.md,
+  borderBottom: `2px solid ${theme.colors.textSecondary}`,
+  fontWeight: theme.fontWeights.semibold,
+  fontSize: theme.fontSizes.base,
+  color: theme.colors.textPrimary
 }
 
 const tdStyle: React.CSSProperties = {
-  padding: 8,
-  borderBottom: '1px solid #ddd'
+  padding: theme.spacing.md,
+  borderBottom: `1px solid ${theme.colors.border}`,
+  fontSize: theme.fontSizes.base,
+  color: theme.colors.textSecondary
 }

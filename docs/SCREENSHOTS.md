@@ -9,7 +9,6 @@ decisionops-ai-toolkit/
 └── docs/
     └── screenshots/
         ├── demo-main.png
-        └── demo-result.png
 ```
 
 ## Screenshot 1: demo-main.png
@@ -27,20 +26,6 @@ decisionops-ai-toolkit/
 - Card para "Paso 3: Explicá la Decisión" con botón "Obtener Explicación"
 
 **Dimensiones sugeridas:** 1200x800px (16:10 o 4:3)
-
-## Screenshot 2: demo-result.png
-
-**Descripción:** Resultado de predicción + tabla de explicación
-
-**Debe incluir:**
-- Resultado de predicción: "🔴 Churn - Cliente en riesgo" o "🟢 Retención - Cliente leal"
-- Porcentaje de confianza (ej: "87.45%")
-- Tabla con top 8 features:
-  - Columna 1: Feature name (ej: "plan_enterprise", "tenure_months")
-  - Columna 2: Importance/Weight (número con signo)
-  - Colores: Rojo (↑ aumenta churn), Verde (↓ disminuye churn)
-
-**Dimensiones sugeridas:** 1200x600px
 
 ## Instrucciones para captura
 
