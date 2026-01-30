@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getHealth, trainModel, predict, explain } from './api'
+import { mockTrainMetrics, mockPredict, mockExplainData, checkApiAvailable } from './demo'
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error'
 
@@ -19,7 +20,13 @@ const EXAMPLE_PROFILES = {
   }
 }
 
+const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://127.0.0.1:8000"
+
 export default function App() {
+  // Demo mode state
+  const [demoMode, setDemoMode] = useState(false)
+  const [checkingApi, setCheckingApi] = useState(true)
+
   // Health check state
   const [healthStatus, setHealthStatus] = useState<LoadingState>('idle')
   const [healthDetail, setHealthDetail] = useState('')
@@ -49,6 +56,39 @@ export default function App() {
     region: 'latam'
   })
 
+  // Check API availability on mount
+  useEffect(() => {
+    const checkApi = async () => {
+      setCheckingApi(true)
+      const available = await checkApiAvailable(API_BASE)
+      setDemoMode(!available)
+      setCheckingApi(false)
+    }
+    checkApi()
+  }, [])
+
+  const handleToggleDemoMode = async () => {
+    if (!demoMode) {
+      // Switching to demo mode
+      setDemoMode(true)
+    } else {
+      // Try to reconnect to API
+      setCheckingApi(true)
+      const available = await checkApiAvailable(API_BASE)
+      setDemoMode(!available)
+      setCheckingApi(false)
+      if (available) {
+        // Reset all states when switching back to API
+        setTrainStatus('idle')
+        setTrainMetrics(null)
+        setPredictStatus('idle')
+        setPredictResult(null)
+        setExplainStatus('idle')
+        setExplainData(null)
+      }
+    }
+  }
+
   const handleCheckAPI = async () => {
     setHealthStatus('loading')
     setHealthDetail('')
@@ -66,6 +106,16 @@ export default function App() {
     setTrainStatus('loading')
     setTrainMetrics(null)
     setTrainError('')
+    
+    if (demoMode) {
+      // Demo mode: return mock metrics
+      setTimeout(() => {
+        setTrainStatus('success')
+        setTrainMetrics(mockTrainMetrics)
+      }, 1000) // Simulate network delay
+      return
+    }
+
     try {
       const data = await trainModel('demo', 'churn')
       setTrainStatus('success')
@@ -80,16 +130,28 @@ export default function App() {
     setPredictStatus('loading')
     setPredictResult(null)
     setPredictError('')
+    
+    // Map form data to match backend schema
+    const record = {
+      age: formData.age,
+      tenure_months: formData.tenure_months,
+      monthly_spend: formData.monthly_spend,
+      support_tickets_last_90d: formData.tickets,
+      plan: String(formData.plan).toLowerCase(),
+      region: String(formData.region).toLowerCase()
+    }
+
+    if (demoMode) {
+      // Demo mode: use mock prediction
+      setTimeout(() => {
+        const result = mockPredict(record)
+        setPredictStatus('success')
+        setPredictResult(result)
+      }, 800)
+      return
+    }
+
     try {
-      // Map form data to match backend schema
-      const record = {
-        age: formData.age,
-        tenure_months: formData.tenure_months,
-        monthly_spend: formData.monthly_spend,
-        support_tickets_last_90d: formData.tickets, // Map tickets → support_tickets_last_90d
-        plan: String(formData.plan).toLowerCase(), // Normalize to lowercase
-        region: String(formData.region).toLowerCase() // Normalize to lowercase
-      }
       const data = await predict([record])
       setPredictStatus('success')
       setPredictResult(data.predictions[0])
@@ -103,6 +165,16 @@ export default function App() {
     setExplainStatus('loading')
     setExplainData(null)
     setExplainError('')
+    
+    if (demoMode) {
+      // Demo mode: return mock explanation
+      setTimeout(() => {
+        setExplainStatus('success')
+        setExplainData(mockExplainData)
+      }, 600)
+      return
+    }
+
     try {
       const data = await explain()
       setExplainStatus('success')
@@ -133,6 +205,38 @@ export default function App() {
           Entrená un modelo ML, hacé predicciones y explicá decisiones. Todo en local, costo cero.
         </p>
       </div>
+
+      {/* Demo Mode Badge */}
+      {(demoMode || checkingApi) && (
+        <div style={demoModeBannerStyle}>
+          {checkingApi ? (
+            <span>⏳ Verificando conexión con API...</span>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={demoBadgeStyle}>🎭 Modo Demo (sin API)</span>
+                <span style={{ fontSize: 14, color: '#666' }}>
+                  La demo funciona sin backend usando predicciones simuladas.{' '}
+                  <a 
+                    href="#diagnostics" 
+                    style={{ color: '#0070f3', textDecoration: 'underline' }}
+                    title="Ver instrucciones para conectar API real"
+                  >
+                    ¿Cómo conectar una API real?
+                  </a>
+                </span>
+              </div>
+              <button 
+                onClick={handleToggleDemoMode}
+                style={toggleButtonStyle}
+                title="Intentar reconectar con API"
+              >
+                🔄 Reconectar API
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* What you're seeing section */}
       <section style={infoBoxStyle}>
@@ -349,11 +453,22 @@ export default function App() {
       </div>
 
       {/* Health check section (hidden by default, for diagnostics) */}
-      <details style={{ marginTop: 32, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
+      <details id="diagnostics" style={{ marginTop: 32, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
         <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#666' }}>
           🔧 Diagnósticos (Check API)
         </summary>
         <div style={{ marginTop: 12 }}>
+          {demoMode && (
+            <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#e3f2fd', borderLeft: '4px solid #2196f3', fontSize: 14 }}>
+              <strong>ℹ️ Cómo conectar la API real:</strong>
+              <ol style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
+                <li>Abrí una terminal en la raíz del proyecto</li>
+                <li>Ejecutá: <code style={{ backgroundColor: '#fff', padding: '2px 6px', borderRadius: 3 }}>npm run dev:api</code></li>
+                <li>Verificá que <a href="http://127.0.0.1:8000/health" target="_blank" rel="noopener noreferrer" style={{ color: '#0070f3' }}>http://127.0.0.1:8000/health</a> responda OK</li>
+                <li>Hacé click en el botón "🔄 Reconectar API" arriba</li>
+              </ol>
+            </div>
+          )}
           <button onClick={handleCheckAPI} disabled={healthStatus === 'loading'} style={buttonStyle}>
             {healthStatus === 'loading' ? 'Checking...' : 'Check API'}
           </button>
@@ -458,6 +573,42 @@ const exampleButtonStyle: React.CSSProperties = {
   borderRadius: 4,
   cursor: 'pointer',
   transition: 'all 0.2s'
+}
+
+const demoModeBannerStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: 16,
+  marginBottom: 24,
+  backgroundColor: '#fff4e6',
+  border: '2px solid #ff9800',
+  borderRadius: 8,
+  flexWrap: 'wrap',
+  gap: 12
+}
+
+const demoBadgeStyle: React.CSSProperties = {
+  display: 'inline-block',
+  padding: '6px 12px',
+  backgroundColor: '#ff9800',
+  color: 'white',
+  fontWeight: 600,
+  fontSize: 14,
+  borderRadius: 4,
+  marginRight: 12
+}
+
+const toggleButtonStyle: React.CSSProperties = {
+  padding: '8px 16px',
+  fontSize: 14,
+  fontWeight: 600,
+  backgroundColor: '#0070f3',
+  color: 'white',
+  border: 'none',
+  borderRadius: 6,
+  cursor: 'pointer',
+  transition: 'background 0.2s'
 }
 
 const resultBoxStyle = (status: LoadingState): React.CSSProperties => ({

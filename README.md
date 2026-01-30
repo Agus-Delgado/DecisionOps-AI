@@ -129,6 +129,20 @@ cp .env.example .env.local
 
 ---
 
+## Levantar con Docker Compose
+
+```bash
+docker compose up --build
+```
+
+**URLs en Docker:**
+- Web: http://localhost:5173
+- API: http://localhost:8000
+
+La web se construye con `VITE_API_BASE` apuntando a `http://localhost:8000`, por lo que corre en **modo real** (sin banner demo) y permite Train/Predict/Explain.
+
+---
+
 ## Scripts Disponibles (desde la raíz)
 
 | Script | Descripción |
@@ -154,6 +168,7 @@ cp .env.example .env.local
 - [ ] **1. Check API**: Click en botón "Check API" → Debe mostrar ✅ OK con respuesta JSON de `/health`
 - [ ] **2. Sin modelo entrenado**: Si API está limpia, intentá predecir → Debe mostrar error "No model trained yet"
 - [ ] **3. Entrenar Modelo**: Click en "Entrenar Modelo" → Muestra métricas (accuracy, precision, recall, f1, roc_auc)
+- [ ] **3.1 Persistencia**: Reiniciá la API y llamá `GET /model/status` → Debe indicar `has_model=true` y devolver métricas
 - [ ] **4. Formulario con defaults**: Verificá que el formulario pre-carga valores (age: 35, tenure_months: 24, etc.)
 - [ ] **5. Modificar formulario**: Cambiá valores del plan (basic/pro/enterprise) y región (latam/na/eu) → Valida que acepte cambios
 - [ ] **6. Predicción exitosa**: Después de entrenar, click "Predecir" → Muestra label (🔴 Churn / 🟢 No Churn) + probabilidad

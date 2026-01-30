@@ -33,7 +33,8 @@ class InMemoryModelStore:
         pipeline,
         feature_names: list,
         metrics: Dict[str, Any],
-        schema: Dict[str, Any]
+        schema: Dict[str, Any],
+        trained_at: Optional[str] = None
     ) -> None:
         """
         Store a trained model.
@@ -48,7 +49,7 @@ class InMemoryModelStore:
         self.feature_names = feature_names
         self.metrics = metrics
         self.schema = schema
-        self.trained_at = datetime.utcnow().isoformat() + "Z"
+        self.trained_at = trained_at or (datetime.utcnow().isoformat() + "Z")
     
     def get_model(self):
         """

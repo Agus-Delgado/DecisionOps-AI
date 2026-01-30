@@ -7,6 +7,7 @@ FastAPI backend with ML baseline for tabular classification (churn prediction).
 ### Health & Version
 - `GET /health` → `{"status":"ok"}`
 - `GET /version` → `{"name":"decisionops-ai-toolkit","version":"0.0.0"}`
+- `GET /model/status` → estado del modelo persistido (has_model, trained_at, target, rows, metrics)
 
 ### ML Endpoints
 
@@ -187,7 +188,7 @@ apps/api/
    - Numeric features: SimpleImputer → StandardScaler
    - Categorical features: SimpleImputer → OneHotEncoder(handle_unknown="ignore")
 2. **Model**: LogisticRegression(max_iter=200)
-3. **Storage**: In-memory (no persistence to disk in v1)
+3. **Storage**: In-memory con persistencia en disco (`apps/api/artifacts/`)
 
 ## Error Handling
 

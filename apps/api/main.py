@@ -1,22 +1,75 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import pandas as pd
 import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Literal, Annotated
 from sklearn.model_selection import train_test_split
 import numpy as np
+import json
+import pickle
 
 from ml.pipeline import build_pipeline
 from ml.metrics import compute_classification_metrics
 from ml.store import model_store
+
+try:
+    import joblib
+    JOBLIB_AVAILABLE = True
+except Exception:
+    joblib = None
+    JOBLIB_AVAILABLE = False
+
+ARTIFACTS_DIR = Path(__file__).parent / "artifacts"
+MODEL_JOBLIB_PATH = ARTIFACTS_DIR / "model.joblib"
+MODEL_PICKLE_PATH = ARTIFACTS_DIR / "model.pkl"
+SCHEMA_PATH = ARTIFACTS_DIR / "schema.json"
+METRICS_PATH = ARTIFACTS_DIR / "metrics.json"
+TRAINED_AT_PATH = ARTIFACTS_DIR / "trained_at.json"
+
+
+def save_pipeline(pipeline) -> None:
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    if JOBLIB_AVAILABLE:
+        joblib.dump(pipeline, MODEL_JOBLIB_PATH)
+    else:
+        with open(MODEL_PICKLE_PATH, "wb") as f:
+            pickle.dump(pipeline, f)
+
+
+def load_pipeline(path: Path):
+    if path.suffix == ".joblib":
+        if not JOBLIB_AVAILABLE:
+            raise RuntimeError("joblib not available to load model.joblib")
+        return joblib.load(path)
+    with open(path, "rb") as f:
+        return pickle.load(f)
+
+
+def get_model_path_for_load() -> Optional[Path]:
+    if MODEL_JOBLIB_PATH.exists():
+        return MODEL_JOBLIB_PATH
+    if MODEL_PICKLE_PATH.exists():
+        return MODEL_PICKLE_PATH
+    return None
+
+
+def save_json(path: Path, data: Dict[str, Any]) -> None:
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def load_json(path: Path) -> Dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 app = FastAPI(title="DecisionOps AI API")
 
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost",
+    "http://127.0.0.1",
 ]
 
 app.add_middleware(
@@ -27,15 +80,124 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+def load_artifacts_on_startup() -> None:
+    model_path = get_model_path_for_load()
+    if not model_path:
+        return
+    if not (SCHEMA_PATH.exists() and METRICS_PATH.exists() and TRAINED_AT_PATH.exists()):
+        return
+
+    try:
+        pipeline = load_pipeline(model_path)
+        schema = load_json(SCHEMA_PATH)
+        metrics = load_json(METRICS_PATH)
+        trained_at_data = load_json(TRAINED_AT_PATH)
+        trained_at = trained_at_data.get("trained_at")
+
+        preprocessor = pipeline.named_steps.get("preprocessor")
+        if preprocessor is None:
+            raise ValueError("Pipeline missing preprocessor step")
+        feature_names_transformed = preprocessor.get_feature_names_out().tolist()
+
+        model_store.set_model(
+            pipeline=pipeline,
+            feature_names=feature_names_transformed,
+            metrics=metrics,
+            schema=schema,
+            trained_at=trained_at
+        )
+    except Exception:
+        model_store.clear()
+
 # Request/Response models
 class TrainRequest(BaseModel):
-    source: str  # "demo" or "upload"
-    target: str  # target column name
-    test_size: float = 0.2
+    source: Literal["demo", "upload"] = Field(
+        ...,
+        description="Dataset source: demo or upload",
+        examples=["demo"]
+    )
+    target: str = Field(
+        ...,
+        description="Target column name",
+        examples=["churn"]
+    )
+    test_size: Annotated[
+        float,
+        Field(
+            ge=0.05,
+            le=0.5,
+            description="Test split size between 0.05 and 0.5",
+            examples=[0.2]
+        )
+    ] = 0.2
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "source": "demo",
+                    "target": "churn",
+                    "test_size": 0.2
+                }
+            ]
+        }
+    }
 
 
 class PredictRequest(BaseModel):
-    records: List[Dict[str, Any]]
+    records: List[Dict[str, Any]] = Field(
+        ...,
+        description="List of records to score",
+        examples=[
+            [
+                {
+                    "age": 34,
+                    "tenure_months": 12,
+                    "monthly_spend": 50.5,
+                    "support_tickets_last_90d": 1,
+                    "plan": "pro",
+                    "region": "latam"
+                },
+                {
+                    "age": 50,
+                    "tenure_months": 36,
+                    "monthly_spend": 129.99,
+                    "support_tickets_last_90d": 0,
+                    "plan": "enterprise",
+                    "region": "eu"
+                }
+            ]
+        ]
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "records": [
+                        {
+                            "age": 34,
+                            "tenure_months": 12,
+                            "monthly_spend": 50.5,
+                            "support_tickets_last_90d": 1,
+                            "plan": "pro",
+                            "region": "latam"
+                        },
+                        {
+                            "age": 50,
+                            "tenure_months": 36,
+                            "monthly_spend": 129.99,
+                            "support_tickets_last_90d": 0,
+                            "plan": "enterprise",
+                            "region": "eu"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
 
 
 class PredictResponse(BaseModel):
@@ -55,6 +217,29 @@ def health():
 @app.get("/version")
 def version():
     return {"name": "decisionops-ai-toolkit", "version": "0.0.0"}
+
+
+@app.get("/model/status")
+def model_status() -> Dict[str, Any]:
+    if not model_store.has_model():
+        return {
+            "has_model": False,
+            "trained_at": None,
+            "target": None,
+            "rows": None,
+            "metrics": None
+        }
+
+    model_data = model_store.get_model()
+    schema = model_data.get("schema") or {}
+
+    return {
+        "has_model": True,
+        "trained_at": model_data.get("trained_at"),
+        "target": schema.get("target"),
+        "rows": schema.get("rows"),
+        "metrics": model_data.get("metrics")
+    }
 
 
 @app.post("/train")
@@ -134,6 +319,11 @@ def train(request: TrainRequest) -> Dict[str, Any]:
         metrics=metrics,
         schema=schema
     )
+
+    save_pipeline(pipeline)
+    save_json(SCHEMA_PATH, schema)
+    save_json(METRICS_PATH, metrics)
+    save_json(TRAINED_AT_PATH, {"trained_at": model_store.trained_at})
     
     return {
         "status": "trained",
@@ -178,6 +368,35 @@ def predict(request: PredictRequest) -> PredictResponse:
             status_code=400,
             detail=f"Missing columns: {list(missing_cols)}. Expected: {expected_features}"
         )
+
+    numeric_features = set(schema.get("numeric_features", []))
+    categorical_features = set(schema.get("categorical_features", []))
+    expected_set = set(expected_features)
+
+    extra_cols = set(df_input.columns) - expected_set
+    if extra_cols:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unexpected columns: {list(extra_cols)}. Expected: {expected_features}"
+        )
+
+    if numeric_features or categorical_features:
+        invalid_fields: List[str] = []
+        for idx, record in enumerate(request.records):
+            for field in numeric_features:
+                value = record.get(field)
+                if value is None:
+                    continue
+                if not isinstance(value, (int, float)):
+                    invalid_fields.append(f"records[{idx}].{field} must be numeric")
+            for field in categorical_features:
+                value = record.get(field)
+                if value is None:
+                    continue
+                if not isinstance(value, str):
+                    invalid_fields.append(f"records[{idx}].{field} must be string")
+        if invalid_fields:
+            raise HTTPException(status_code=400, detail="; ".join(invalid_fields))
     
     # Select only expected features and reorder
     df_input = df_input[expected_features]

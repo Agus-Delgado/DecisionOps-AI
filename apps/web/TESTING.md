@@ -32,6 +32,15 @@ The app (`App.tsx`) provides a comprehensive demo UI with:
    - Metrics include: accuracy, precision, recall, f1, roc_auc
 3. **If error**: Check API is running and demo dataset exists at `apps/api/data/demo_churn.csv`
 
+#### B.1 Persistencia tras reinicio
+1. Con el modelo ya entrenado, reiniciá la API (detené y volvé a ejecutar `npm run dev:api`)
+2. Llamá `GET /model/status`
+3. **Expected**:
+   - `has_model=true`
+   - `metrics` presente
+   - `trained_at` no nulo
+4. **Then**: Probá **"Predecir"** y **"Obtener Explicación"** sin re-entrenar
+
 #### C. Form Interaction
 1. Verify form pre-loads with defaults:
    - age: 35
