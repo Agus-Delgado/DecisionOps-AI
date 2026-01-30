@@ -1,5 +1,10 @@
 ﻿# DecisionOps AI Toolkit
 
+[![CI Status](https://github.com/augusllc/decisionops-ai-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/augusllc/decisionops-ai-toolkit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/Version-v0.1.0-blue.svg)](https://github.com/augusllc/decisionops-ai-toolkit/releases/tag/v0.1.0)
+[![Stack](https://img.shields.io/badge/Stack-FastAPI%20%7C%20Vite%20%7C%20React-blueviolet)](https://github.com/augusllc/decisionops-ai-toolkit)
+
 ## ¿Qué es DecisionOps AI Toolkit?
 
 - **ML baseline**: Herramienta para análisis predictivo con modelos de Machine Learning (clasificación, regresión, clustering)
@@ -7,6 +12,37 @@
 - **Futuro: GenAI briefs**: Integración con LLMs para resúmenes ejecutivos en lenguaje natural (BYOK opcional)
 
 **Enfoque costo cero**: Sin base de datos, sin servicios pagos, sin vendor lock-in. Todo corre en local.
+
+---
+
+## Demo en 60 Segundos
+
+### ¿Qué habilita?
+
+Identifica clientes con riesgo de irse (**churn prediction**) y **entiende por qué** sin caja negra. Toma decisiones informadas: retención proactiva, upgrade de plan, o investigación de fricción.
+
+### Flujo: Entrenar → Predecir → Explicar
+
+**Paso 1️⃣ : Entrená**
+- Click en "Entrenar Modelo" 
+- Modelo se entrena en dataset demo (1000 clientes reales)
+- Métricas mostradas: accuracy, precision, recall, F1, ROC-AUC
+
+**Paso 2️⃣ : Predecí**
+- Cargá ejemplo o ingresá datos de un cliente
+- Click "Predecir" 
+- Resultado: ¿Churn (🔴) o Retención (🟢)? + Confianza %
+
+**Paso 3️⃣ : Explicá**
+- Click "Obtener Explicación"
+- Top 8 features más importantes
+- Entendé qué influye más en el riesgo
+
+> **Placeholder: Screenshot 1** - Interfaz principal con 3 pasos y selector de ejemplos
+> ![Pantalla principal - Entrenar, Predecir, Explicar](docs/screenshots/demo-main.png)
+
+> **Placeholder: Screenshot 2** - Predicción + tabla de explicación
+> ![Resultado: Predicción + Feature Importance](docs/screenshots/demo-result.png)
 
 ---
 
@@ -127,6 +163,29 @@ cp .env.example .env.local
 
 ---
 
+## Integración Continua (CI/CD)
+
+Este proyecto incluye GitHub Actions para validar cada push y pull request:
+
+### Workflow: `ci.yml`
+
+**Qué verifica:**
+- ✅ **Frontend builds**: `npm run build` en `apps/web`
+- ✅ **Backend imports**: `python -c "from main import app"` en `apps/api`
+- ✅ **Dependencias**: npm y pip se instalan correctamente
+
+**Triggers:**
+- `push` a `main`
+- `pull_request` a `main`
+
+**Resultado:**
+- Verde ✅: Frontend y backend son importables
+- Rojo ❌: Build falló o dependencias no resuelven
+
+Ver status en la rama o en el Actions tab de GitHub.
+
+---
+
 ## Troubleshooting
 
 ### La web no conecta con la API
@@ -139,3 +198,24 @@ cp .env.example .env.local
 ### Errores de Python
 - Asegurate de tener Python 3.9+ instalado: `python --version`
 - Verificá que el entorno virtual esté activado antes de instalar dependencias
+
+---
+
+## Contribuciones
+
+¿Querés aportar? ¡Excelente! 
+
+Podés:
+- 🐛 Reportar bugs o sugerir features (Issues)
+- 📝 Mejorar documentación
+- ✨ Agregar funcionalidades (PRs)
+
+Ver [CONTRIBUTING.md](CONTRIBUTING.md) para instrucciones detalladas.
+
+**Expectativas:** Código limpio, tests pasando (CI), y respeto a nuestro [Código de Conducta](CODE_OF_CONDUCT.md).
+
+---
+
+## Licencia
+
+MIT © 2026 DecisionOps AI Toolkit Contributors. Ver [LICENSE](LICENSE).
