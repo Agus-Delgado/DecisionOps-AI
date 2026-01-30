@@ -1,17 +1,104 @@
 ﻿# DecisionOps AI Toolkit
 
-![CI](https://github.com/https://github.com/Agus-Delgado/DecisionOps-AI.git/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v0.1.0-blue.svg)](https://github.com/augusllc/decisionops-ai-toolkit/releases/tag/v0.1.0)
+[![Version](https://img.shields.io/badge/Version-v1.0.0-blue.svg)](https://github.com/augusllc/decisionops-ai-toolkit/releases/tag/v1.0.0)
 [![Stack](https://img.shields.io/badge/Stack-FastAPI%20%7C%20Vite%20%7C%20React-blueviolet)](https://github.com/augusllc/decisionops-ai-toolkit)
 
 ## ¿Qué es DecisionOps AI Toolkit?
 
-- **ML baseline**: Herramienta para análisis predictivo con modelos de Machine Learning (clasificación, regresión, clustering)
-- **Explicabilidad**: Genera explicaciones interpretables de las predicciones (SHAP, feature importance, métricas)
-- **Futuro: GenAI briefs**: Integración con LLMs para resúmenes ejecutivos en lenguaje natural (BYOK opcional)
+Herramienta para análisis predictivo con Machine Learning y explicabilidad integrada.
+
+- **ML baseline (churn)** con métricas y persistencia de artifacts
+- **Explicabilidad (feature importance)** para evitar "caja negra"
+- **Modo Demo del frontend** (funciona sin backend) para compartir en Vercel
 
 **Enfoque costo cero**: Sin base de datos, sin servicios pagos, sin vendor lock-in. Todo corre en local.
+
+---
+
+## Quickstart
+
+### Opción A — Docker (recomendado, 1 comando)
+
+```bash
+docker compose up --build
+```
+
+**URLs:**
+- **Web**: http://localhost:5173
+- **API**: http://localhost:8000
+- **Swagger**: http://localhost:8000/docs
+
+**Detener:**
+```bash
+docker compose down       # Detiene los contenedores
+docker compose down -v    # Detiene y elimina volúmenes
+```
+
+### Opción B — Local (2 terminales)
+
+**Prerrequisitos**: Node.js 18+ y Python 3.9+
+
+**Terminal 1 - API (Backend):**
+```bash
+npm run dev:api
+```
+
+**Terminal 2 - Web (Frontend):**
+```bash
+npm run dev:web
+```
+
+**URLs:**
+- **Web**: http://localhost:5173
+- **API**: http://127.0.0.1:8000
+- **Swagger**: http://127.0.0.1:8000/docs
+
+---
+
+## Validación rápida (CI local)
+
+```bash
+npm run check
+```
+
+Este comando ejecuta:
+- ✅ **pytest** en `apps/api` (tests del backend)
+- ✅ **build** en `apps/web` (compilación del frontend)
+
+Úsalo antes de hacer commits para validar que todo funcione correctamente.
+
+---
+
+## Demo flow (3 pasos)
+
+### 1️⃣ Entrenar
+**Endpoint:** `POST /train`  
+Entrena el modelo con el dataset demo y devuelve métricas (accuracy, precision, recall, F1, ROC-AUC).
+
+### 2️⃣ Predecir
+**Endpoint:** `POST /predict`  
+Recibe datos de un cliente y devuelve:
+- **label**: `"churn"` o `"no_churn"`
+- **probability**: Confianza de la predicción (0-1)
+
+### 3️⃣ Explicar
+**Endpoint:** `GET /explain`  
+Devuelve las top features con sus pesos (feature importance), mostrando qué factores influyen más en la predicción.
+
+**Tip:** Usá la interfaz web en http://localhost:5173 para probar el flujo completo con 3 botones.
+
+---
+
+## Modo Demo (frontend sin backend)
+
+El frontend detecta automáticamente si la API está disponible:
+
+- **Con API**: Conecta a `http://127.0.0.1:8000` y ejecuta entrenamientos/predicciones reales
+- **Sin API**: Usa resultados mock coherentes (UI funcional para demos)
+
+Esto permite deployar el frontend en Vercel sin necesidad de backend, ideal para compartir el proyecto en portfolios.
 
 ---
 
@@ -52,49 +139,13 @@ Monorepo con:
 - **apps/web**: Frontend con Vite + React + TypeScript
 - **apps/api**: Backend con FastAPI + scikit-learn
 
-Nota: Se removieron carpetas legacy api/web fuera de apps/ (si existían).
-
 ---
 
-## Prerrequisitos
-
-- **Node.js** 18+ (para web)
-- **Python** 3.9+ (para API)
-- **npm** (incluido con Node.js)
-
----
-
-## Cómo Correr el Proyecto en Local
-
-### Opción 1: Usando scripts npm desde la raíz (Recomendado)
-
-**⚠️ IMPORTANTE**: El comando `npm run dev` **SOLO imprime una guía** de ayuda. Para desarrollo real necesitás **DOS terminales**:
-
-#### Terminal 1 - API (Backend):
-```bash
-npm run dev:api
-```
-
-La API estará disponible en:
-- **API**: http://127.0.0.1:8000
-- **Swagger Docs**: http://127.0.0.1:8000/docs
-- **Health check**: http://127.0.0.1:8000/health
-
-#### Terminal 2 - Web (Frontend):
-```bash
-npm run dev:web
-```
-
-La web estará disponible en:
-- **Web**: http://localhost:5173 (o el puerto que muestre Vite)
-
----
-
-### Opción 2: Ejecución manual (paso a paso)
+## Ejecución Manual (Alternativa)
 
 Si preferís mayor control, podés ejecutar cada app manualmente:
 
-#### 1. API (Backend)
+#### API (Backend)
 
 ```bash
 cd apps/api
@@ -110,7 +161,7 @@ uvicorn main:app --reload --port 8000
 - http://127.0.0.1:8000/version → `{"name":"decisionops-ai-toolkit","version":"..."}`
 - http://127.0.0.1:8000/docs → Documentación interactiva Swagger
 
-#### 2. Web (Frontend)
+#### Web (Frontend)
 
 ```bash
 cd apps/web
@@ -121,43 +172,7 @@ npm run dev
 **URL del Frontend**:
 - http://localhost:5173
 
-**Configuración opcional (si querés cambiar el base URL de la API)**:
-```bash
-cp .env.example .env.local
-# Editá .env.local y cambiá VITE_API_BASE si es necesario
-```
-
-**Verificación**: La sección "API Status" debe mostrar ✅ OK si la API está corriendo.
-
----
-
-## Validación Rápida
-
-Para verificar que todo compila y los tests pasan:
-
-```bash
-npm run check
-```
-
-Esto ejecuta:
-1. `npm run check:api` - Tests del backend con pytest
-2. `npm run build:web` - Build del frontend
-
-Si todo está bien, debería terminar sin errores.
-
----
-
-## Levantar con Docker Compose
-
-```bash
-docker compose up --build
-```
-
-**URLs en Docker:**
-- Web: http://localhost:5173
-- API: http://localhost:8000
-
-La web se construye con `VITE_API_BASE` apuntando a `http://localhost:8000`, por lo que corre en **modo real** (sin banner demo) y permite Train/Predict/Explain.
+**Configuración opcional**: Creá `.env.local` si necesitás cambiar `VITE_API_BASE`.
 
 ---
 
@@ -171,8 +186,6 @@ La web se construye con `VITE_API_BASE` apuntando a `http://localhost:8000`, por
 | `npm run check` | Validación rápida: tests API + build web |
 | `npm run check:api` | Tests del backend (pytest) |
 | `npm run build:web` | Build del frontend (Vite) |
-| `npm run lint` | Linting (placeholder) |
-| `npm run test` | Tests (placeholder) |
 
 ---
 
