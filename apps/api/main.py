@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import json
 import pickle
+from contextlib import asynccontextmanager
 
 from ml.pipeline import build_pipeline
 from ml.metrics import compute_classification_metrics
@@ -63,7 +64,40 @@ def save_json(path: Path, data: Dict[str, Any]) -> None:
 def load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
-app = FastAPI(title="DecisionOps AI API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Load artifacts
+    model_path = get_model_path_for_load()
+    if model_path and SCHEMA_PATH.exists() and METRICS_PATH.exists() and TRAINED_AT_PATH.exists():
+        try:
+            pipeline = load_pipeline(model_path)
+            schema = load_json(SCHEMA_PATH)
+            metrics = load_json(METRICS_PATH)
+            trained_at_data = load_json(TRAINED_AT_PATH)
+            trained_at = trained_at_data.get("trained_at")
+
+            preprocessor = pipeline.named_steps.get("preprocessor")
+            if preprocessor is None:
+                raise ValueError("Pipeline missing preprocessor step")
+            feature_names_transformed = preprocessor.get_feature_names_out().tolist()
+
+            model_store.set_model(
+                pipeline=pipeline,
+                feature_names=feature_names_transformed,
+                metrics=metrics,
+                schema=schema,
+                trained_at=trained_at
+            )
+        except Exception:
+            model_store.clear()
+    
+    yield
+    
+    # Shutdown: cleanup if needed (currently none)
+
+
+app = FastAPI(title="DecisionOps AI API", lifespan=lifespan)
 
 origins = [
     "http://localhost:5173",
@@ -79,37 +113,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def load_artifacts_on_startup() -> None:
-    model_path = get_model_path_for_load()
-    if not model_path:
-        return
-    if not (SCHEMA_PATH.exists() and METRICS_PATH.exists() and TRAINED_AT_PATH.exists()):
-        return
-
-    try:
-        pipeline = load_pipeline(model_path)
-        schema = load_json(SCHEMA_PATH)
-        metrics = load_json(METRICS_PATH)
-        trained_at_data = load_json(TRAINED_AT_PATH)
-        trained_at = trained_at_data.get("trained_at")
-
-        preprocessor = pipeline.named_steps.get("preprocessor")
-        if preprocessor is None:
-            raise ValueError("Pipeline missing preprocessor step")
-        feature_names_transformed = preprocessor.get_feature_names_out().tolist()
-
-        model_store.set_model(
-            pipeline=pipeline,
-            feature_names=feature_names_transformed,
-            metrics=metrics,
-            schema=schema,
-            trained_at=trained_at
-        )
-    except Exception:
-        model_store.clear()
 
 # Request/Response models
 class TrainRequest(BaseModel):

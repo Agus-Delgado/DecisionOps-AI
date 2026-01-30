@@ -4,7 +4,7 @@ Singleton pattern for simplicity.
 """
 
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class InMemoryModelStore:
@@ -49,7 +49,7 @@ class InMemoryModelStore:
         self.feature_names = feature_names
         self.metrics = metrics
         self.schema = schema
-        self.trained_at = trained_at or (datetime.utcnow().isoformat() + "Z")
+        self.trained_at = trained_at or (datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))
     
     def get_model(self):
         """
