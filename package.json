@@ -1,15 +1,17 @@
 {
   "name": "decisionops-ai-toolkit",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "cd apps/api && uvicorn main:app --reload --port 8000",
     "dev": "node -e \"console.log('Abrí dos terminales: npm run dev:api y npm run dev:web')\"",
+
     "build:web": "npm --prefix apps/web run build",
     "check:api": "cd apps/api && pytest -q",
     "check": "npm run check:api && npm run build:web",
-    "lint": "node -e \"console.log('Lint placeholder: no configurado')\"",
-    "test": "node -e \"console.log('Test placeholder')\""
+
+    "test": "npm run check",
+    "lint": "node -e \"console.log('Lint no configurado: intencional (cero deps).')\""
   }
 }
