@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 import pandas as pd
 from pathlib import Path
@@ -8,7 +9,12 @@ from sklearn.model_selection import train_test_split
 import json
 import pickle
 from contextlib import asynccontextmanager
+import logging
+import uuid
+import time
 
+from version import __version__
+from schemas import ModelStatus, VersionResponse
 from ml.pipeline import build_pipeline
 from ml.metrics import compute_classification_metrics
 from ml.store import model_store
@@ -96,6 +102,51 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="DecisionOps AI API", lifespan=lifespan)
+
+# Configure logging
+logger = logging.getLogger("api")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+
+# Observability middleware
+@app.middleware("http")
+async def observability_middleware(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    start_time = time.time()
+    
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        latency_ms = (time.time() - start_time) * 1000
+        logger.info(
+            json.dumps({
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": 500,
+                "latency_ms": round(latency_ms, 2)
+            })
+        )
+        raise
+    
+    latency_ms = (time.time() - start_time) * 1000
+    response.headers["X-Request-ID"] = request_id
+    
+    logger.info(
+        json.dumps({
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "latency_ms": round(latency_ms, 2)
+        })
+    )
+    
+    return response
 
 origins = [
     "http://localhost:5173",
@@ -213,32 +264,38 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/version")
-def version():
-    return {"name": "decisionops-ai-toolkit", "version": "0.0.0"}
+@app.get("/version", response_model=VersionResponse)
+def version() -> VersionResponse:
+    return VersionResponse(name="decisionops-ai-toolkit", version=__version__)
 
 
-@app.get("/model/status")
-def model_status() -> Dict[str, Any]:
+@app.get("/model/status", response_model=ModelStatus)
+def model_status() -> ModelStatus:
     if not model_store.has_model():
-        return {
-            "has_model": False,
-            "trained_at": None,
-            "target": None,
-            "rows": None,
-            "metrics": None
-        }
+        return ModelStatus(
+            has_model=False,
+            trained_at=None,
+            target=None,
+            rows=None,
+            metrics=None,
+            feature_names=None,
+            numeric_features=None,
+            categorical_features=None
+        )
 
     model_data = model_store.get_model()
     schema = model_data.get("schema") or {}
 
-    return {
-        "has_model": True,
-        "trained_at": model_data.get("trained_at"),
-        "target": schema.get("target"),
-        "rows": schema.get("rows"),
-        "metrics": model_data.get("metrics")
-    }
+    return ModelStatus(
+        has_model=True,
+        trained_at=model_data.get("trained_at"),
+        target=schema.get("target"),
+        rows=schema.get("rows"),
+        metrics=model_data.get("metrics"),
+        feature_names=schema.get("feature_names"),
+        numeric_features=schema.get("numeric_features"),
+        categorical_features=schema.get("categorical_features")
+    )
 
 
 @app.post("/train")

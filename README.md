@@ -52,6 +52,8 @@ Monorepo con:
 - **apps/web**: Frontend con Vite + React + TypeScript
 - **apps/api**: Backend con FastAPI + scikit-learn
 
+Nota: Se removieron carpetas legacy api/web fuera de apps/ (si existían).
+
 ---
 
 ## Prerrequisitos
@@ -129,6 +131,22 @@ cp .env.example .env.local
 
 ---
 
+## Validación Rápida
+
+Para verificar que todo compila y los tests pasan:
+
+```bash
+npm run check
+```
+
+Esto ejecuta:
+1. `npm run check:api` - Tests del backend con pytest
+2. `npm run build:web` - Build del frontend
+
+Si todo está bien, debería terminar sin errores.
+
+---
+
 ## Levantar con Docker Compose
 
 ```bash
@@ -150,6 +168,9 @@ La web se construye con `VITE_API_BASE` apuntando a `http://localhost:8000`, por
 | `npm run dev` | ⚠️ **Solo imprime guía** - No corre ningún servicio |
 | `npm run dev:api` | Inicia el backend FastAPI en http://127.0.0.1:8000 |
 | `npm run dev:web` | Inicia el frontend Vite en http://localhost:5173 |
+| `npm run check` | Validación rápida: tests API + build web |
+| `npm run check:api` | Tests del backend (pytest) |
+| `npm run build:web` | Build del frontend (Vite) |
 | `npm run lint` | Linting (placeholder) |
 | `npm run test` | Tests (placeholder) |
 
