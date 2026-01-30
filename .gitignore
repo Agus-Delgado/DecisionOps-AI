@@ -1,0 +1,15 @@
+# Node
+apps/web/node_modules/
+apps/web/dist/
+
+# Environment (local overrides only)
+apps/web/.env.local
+apps/web/.env*.local
+
+# Python venv
+apps/api/.venv/
+apps/api/__pycache__/
+
+# OS
+.DS_Store
+Thumbs.db
